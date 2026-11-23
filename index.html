@@ -261,7 +261,7 @@
     .player-rank { font-size: 11px; font-weight: 700; color: var(--text-faint); width: 18px; text-align: center; flex-shrink: 0; }
     .player-avatar { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; border: 2px solid var(--bg); background-color: var(--bg); flex-shrink: 0; }
     .player-name-row { font-size: 13px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 4px; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .player-skills { display: flex; align-items: center; gap: 8px; font-size: 10px; color: var(--text-muted); font-weight: 600;}
+    .player-skills { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 10px; color: var(--text-muted); font-weight: 600;}
     .player-card-right { text-align: right; flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; }
     .status-badge { padding: 4px 10px; border-radius: 6px; font-size: 9px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; }
     .status-badge.is-sold { color: var(--accent-green); background-color: var(--accent-green-glow); }
@@ -296,6 +296,7 @@
     .overlay-content { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; }
     .overlay-badge { display: inline-flex; padding: 10px 32px; border-radius: 100px; color: var(--accent-green); background-color: var(--accent-green-glow); border: 1px solid rgba(52,211,153,0.3); font-size: 16px; font-weight: 800; letter-spacing: 2px; margin-bottom: 24px; }
     .overlay-name { font-size: 24px; font-weight: 800; color: var(--text-main); letter-spacing: -0.5px; margin-bottom: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; }
+    .overlay-city { font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: -10px; margin-bottom: 16px; }
     .overlay-divider { width: 64px; height: 3px; background: var(--accent-green); margin-bottom: 24px; border-radius: 2px;}
     .overlay-label { font-size: 12px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
     .overlay-meta { font-size: 20px; font-weight: 800; }
@@ -418,7 +419,7 @@
       
       <div class="relative mb-10">
           <div class="absolute inset-0 bg-[var(--accent-gold)] blur-[80px] opacity-15 rounded-full scale-150"></div>
-          <img src="ChatGPT Image Aug 1, 2026, 07_49_14 PM.png" alt="Auctify Logo" class="relative w-32 h-32 sm:w-40 sm:h-40 object-contain rounded-3xl shadow-[0_0_50px_rgba(251,191,36,0.1)] transform transition-all hover:scale-105 duration-700" onerror="this.src='https://placehold.co/200x200/18181b/fbbf24?text=Auctify'" />
+          <img src="logo.PNG" alt="Auctify Logo" class="relative w-32 h-32 sm:w-40 sm:h-40 object-contain rounded-3xl shadow-[0_0_50px_rgba(251,191,36,0.1)] transform transition-all hover:scale-105 duration-700" onerror="this.src='https://placehold.co/200x200/18181b/fbbf24?text=Auctify'" />
       </div>
       
       <div class="text-center space-y-5 mb-14">
@@ -566,7 +567,7 @@
             <span class="count-badge" id="playerTableBadge">0</span>
           </div>
           <div class="search-wrap">
-            <input type="text" id="playerSearch" placeholder="Search by player name..." class="search-input">
+            <input type="text" id="playerSearch" placeholder="Search by player name or city..." class="search-input">
             <span class="search-icon">🔍</span>
           </div>
           <div class="filter-pills no-scrollbar">
@@ -605,6 +606,7 @@
       <div class="overlay-content">
         <div class="overlay-badge" id="soldBadge">SOLD!</div>
         <h2 id="oName" class="overlay-name">Player Name</h2>
+        <p id="oCity" class="overlay-city" style="display: none;"></p>
         <div class="overlay-divider" id="soldDivider"></div>
         <p class="overlay-label">Bought By</p>
         <p id="oMeta" class="overlay-meta">Team • 0 PTS</p>
@@ -618,6 +620,7 @@
       <div class="overlay-content">
         <div class="overlay-badge overlay-badge-unsold">UNSOLD</div>
         <h2 id="uName" class="overlay-name">Player Name</h2>
+        <p id="uCity" class="overlay-city" style="display: none;"></p>
         <div class="overlay-divider overlay-divider-unsold"></div>
         <p class="overlay-label" style="color: var(--text-faint); font-size: 14px;">No bids received</p>
       </div>
@@ -637,6 +640,7 @@
     <div class="alert-card">
       <div class="alert-badge">🔔 WATCHLIST ALERT</div>
       <h2 id="alertPlayerName" style="font-size: 22px; font-weight: 800; margin-bottom: 8px; color: var(--text-main);">Player Name</h2>
+      <p id="alertPlayerCity" style="display: none; font-size: 11px; font-weight: 700; color: var(--accent-gold); text-transform: uppercase; letter-spacing: 0.8px; margin-top: -2px; margin-bottom: 8px;"></p>
       <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 18px;">is now active on the <b>Live Auction Block!</b></p>
       <button id="closeAlertBtn" style="width: 100%; padding: 12px; background: var(--accent-gold); color: #000; font-weight: 800; border-radius: 10px; cursor: pointer;">Got It</button>
     </div>
@@ -705,6 +709,9 @@
     let unsubSettings, unsubTeams, unsubPlayers;
     let liveAlertTimeout = null;
     let welcomeTimeout = null;
+    let soldHideTimer = null;
+    let soldConfettiTimer = null;
+    let unsoldHideTimer = null;
     
     // Core State Map
     const state = {
@@ -756,6 +763,7 @@
       if (!container) return;
 
       const totalSlots = state.settings?.playersPerTeam || 0;
+      const cityStr = String(player.city || "").trim();
       const toast = document.createElement("div");
       toast.className = "toast-purchase";
       toast.innerHTML = `
@@ -767,6 +775,7 @@
               <div style="font-size:12.5px; font-weight:800; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
                 ${player.isCaptain ? "👑 " : ""}${escapeHtml(player.name)} <span style="color:${player.isCaptain ? "var(--accent-blue)" : "var(--accent-gold)"}; font-size:11.5px;">(${formatPrice(player.soldPrice, player.isCaptain)})</span>
               </div>
+              ${cityStr ? `<div style="font-size:10px; font-weight:600; color:var(--text-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📍 ${escapeHtml(cityStr)}</div>` : ''}
             </div>
           </div>
           <button style="background:transparent; color:var(--text-faint); font-size:13px; cursor:pointer; padding:2px 4px; flex-shrink:0;" aria-label="Dismiss">✕</button>
@@ -951,13 +960,13 @@
                <div class="flex justify-between items-start gap-2">
                   <div class="flex items-center gap-3 min-w-0">
                      <img src="${logoImage}" class="w-10 h-10 rounded-lg object-cover bg-[var(--bg)] border border-[var(--border-light)] p-0.5 flex-shrink-0" onerror="this.src='https://placehold.co/100x100/18181b/fbbf24?text=T'"/>
-                     <h3 class="text-base font-extrabold text-white leading-tight line-clamp-2">${data.tournamentName || 'Unnamed Tournament'} ${data.spplMode ? '👑' : ''}</h3>
+                     <h3 class="text-base font-extrabold text-white leading-tight line-clamp-2">${escapeHtml(data.tournamentName || 'Unnamed Tournament')} ${data.spplMode ? '👑' : ''}</h3>
                   </div>
                   <span class="px-2 py-1 rounded-[6px] text-[9px] font-black uppercase tracking-wider border ${statusClass} shrink-0">${statusText}</span>
                </div>
                <div class="flex flex-col gap-1 text-[11px] text-[var(--text-muted)] font-semibold bg-[var(--surface-hover)] border border-[var(--border)] p-2.5 rounded-xl mt-1">
-                  <span class="flex items-center gap-1.5"><span class="text-sm">📅</span> ${formattedDate} ${data.time ? '• ' + data.time : ''}</span>
-                  <span class="flex items-center gap-1.5 truncate"><span class="text-sm">📍</span> ${data.venue || 'TBD'}, ${data.city || 'TBD'}</span>
+                  <span class="flex items-center gap-1.5"><span class="text-sm">📅</span> ${formattedDate} ${data.time ? '• ' + escapeHtml(data.time) : ''}</span>
+                  <span class="flex items-center gap-1.5 truncate"><span class="text-sm">📍</span> ${escapeHtml(data.venue || 'TBD')}, ${escapeHtml(data.city || 'TBD')}</span>
                </div>
                <div class="grid grid-cols-4 gap-2 text-center mt-1">
                   <div class="bg-[var(--bg)] rounded-lg p-1.5 border border-[var(--border-light)]"><div class="text-[9px] text-[var(--text-faint)] font-bold uppercase">Teams</div><div class="text-xs font-bold text-white">${data.numTeams || 0}</div></div>
@@ -999,10 +1008,16 @@
        if (unsubPlayers) unsubPlayers();
        if (liveAlertTimeout) clearTimeout(liveAlertTimeout);
        if (welcomeTimeout) clearTimeout(welcomeTimeout);
+       if (soldHideTimer) clearTimeout(soldHideTimer);
+       if (soldConfettiTimer) clearTimeout(soldConfettiTimer);
+       if (unsoldHideTimer) clearTimeout(unsoldHideTimer);
 
        $("teamSelectModal").classList.remove("show");
        $("welcomeOwnerModal").classList.remove("show");
        $("liveAlertModal").classList.remove("show");
+       $("playerOverviewModal").classList.remove("show");
+       $("resultOverlay").classList.remove("show");
+       $("unsoldOverlay").classList.remove("show");
        
        state.settings = null;
        state.teams = [];
@@ -1148,23 +1163,25 @@
       badge.className = reauction ? "status-pill is-reauction" : "status-pill";
 
       const isCaptain = player.isCaptain;
+      const cityStr = String(player.city || "").trim();
 
       wrap.innerHTML = `
         ${isCaptain ? `<div style="position:absolute; top: -10px; font-size:10px; font-weight:800; color:#000; background:var(--accent-blue); padding:4px 12px; border-radius:100px; text-transform:uppercase; letter-spacing:1px; box-shadow:0 4px 12px rgba(96,165,250,0.4); animation: pulseBlue 2s infinite; z-index:20;">👑 CAPTAIN AUCTION</div>` : ''}
         <div class="player-photo-wrap" style="margin-top: ${isCaptain ? '16px' : '0'};">
           <div class="player-photo-glow" style="${isCaptain ? 'background-color: var(--accent-blue);' : ''}"></div>
-          <img class="player-photo" style="${isCaptain ? 'box-shadow: 0 0 0 2px var(--accent-blue);' : ''}" src="${player.imageUrl || placeholder(player.name?.[0])}" alt="${player.name}">
+          <img class="player-photo" style="${isCaptain ? 'box-shadow: 0 0 0 2px var(--accent-blue);' : ''}" src="${player.imageUrl || placeholder(player.name?.[0])}" alt="${escapeHtml(player.name)}">
         </div>
         <div class="player-base-price" style="${isCaptain ? 'color: var(--accent-blue); border-color: rgba(96,165,250,0.3); background: rgba(96,165,250,0.1);' : ''}">💰 Base Price: ${formatPrice(player.isCaptain ? 100 : (player.basePrice || state.settings?.basePrice), isCaptain)}</div>
         <h3 class="player-name-title">
           ${isCaptain ? '<span style="color: var(--accent-blue);">👑</span> ' : ''}
           ${player.isIconPlayer ? '<span style="color: var(--accent-gold);">⭐</span>' : ''}
           ${player.isChitPlayer ? '<span style="color: var(--accent-gold);">🎟️</span>' : ''}
-          ${player.name}
+          ${escapeHtml(player.name)}
         </h3>
         <div class="player-tags">
-          <span class="tag">🏏 Bat: ${player.batting || "-"}</span>
-          <span class="tag">🥎 Bowl: ${player.bowling || "-"}</span>
+          ${cityStr ? `<span class="tag">📍 ${escapeHtml(cityStr)}</span>` : ''}
+          <span class="tag">🏏 Bat: ${escapeHtml(player.batting || "-")}</span>
+          <span class="tag">🥎 Bowl: ${escapeHtml(player.bowling || "-")}</span>
           <span class="tag">${isCaptain ? 'SPPL CAPTAIN' : 'Round ' + (player.auctionRound || state.settings?.currentRound || 1)}</span>
         </div>
       `;
@@ -1191,26 +1208,29 @@
       if (!p) return;
 
       const isSold = p.status === "Sold";
+      const cityStr = String(p.city || "").trim();
+
       $("overviewContent").innerHTML = `
         <div style="position:relative; margin-bottom: 16px; display:inline-block;">
-          <img src="${p.imageUrl || placeholder(p.name?.[0])}" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border); margin: 0 auto; ${p.isCaptain ? 'box-shadow: 0 0 15px rgba(96,165,250,0.5); border-color: var(--accent-blue);' : ''}">
+          <img src="${p.imageUrl || placeholder(p.name?.[0])}" alt="${escapeHtml(p.name)}" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 3px solid var(--border); margin: 0 auto; ${p.isCaptain ? 'box-shadow: 0 0 15px rgba(96,165,250,0.5); border-color: var(--accent-blue);' : ''}">
         </div>
         <h2 style="font-size: 20px; font-weight: 800; margin-bottom: 6px; color: var(--text-main);">
-          ${p.isCaptain ? '👑 ' : ''}${p.isIconPlayer ? '⭐ ' : ''}${p.isChitPlayer ? '🎟️ ' : ''}${p.name}
+          ${p.isCaptain ? '👑 ' : ''}${p.isIconPlayer ? '⭐ ' : ''}${p.isChitPlayer ? '🎟️ ' : ''}${escapeHtml(p.name)}
         </h2>
         <div style="margin-bottom: 16px;"><span class="${statusStyle(p.status)}">${p.status || "Pending"}</span></div>
         
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; text-align: left; background: var(--bg); padding: 12px; border-radius: 12px; border: 1px solid var(--border-light); font-size: 11px; margin-bottom: 16px;">
-          <div><span style="color: var(--text-faint); display:block; font-size: 9px; font-weight:700; text-transform:uppercase;">Batting</span><b>${p.batting || "-"}</b></div>
-          <div><span style="color: var(--text-faint); display:block; font-size: 9px; font-weight:700; text-transform:uppercase;">Bowling</span><b>${p.bowling || "-"}</b></div>
-          <div><span style="color: var(--text-faint); display:block; font-size: 9px; font-weight:700; text-transform:uppercase;">Base Price</span><b style="color:${p.isCaptain ? 'var(--accent-blue)' : 'var(--accent-gold)'};">${formatPrice(p.isCaptain ? 100 : (p.basePrice || state.settings?.basePrice), p.isCaptain)}</b></div>
+          <div><span style="color: var(--text-faint); display:block; font-size: 9px; font-weight:700; text-transform:uppercase;">City</span><b>${escapeHtml(cityStr || "-")}</b></div>
           <div><span style="color: var(--text-faint); display:block; font-size: 9px; font-weight:700; text-transform:uppercase;">Auction Round</span><b>${p.isCaptain ? 'SPPL CAPTAIN' : 'Round ' + (p.auctionRound || 1)}</b></div>
+          <div><span style="color: var(--text-faint); display:block; font-size: 9px; font-weight:700; text-transform:uppercase;">Batting</span><b>${escapeHtml(p.batting || "-")}</b></div>
+          <div><span style="color: var(--text-faint); display:block; font-size: 9px; font-weight:700; text-transform:uppercase;">Bowling</span><b>${escapeHtml(p.bowling || "-")}</b></div>
+          <div style="grid-column: span 2;"><span style="color: var(--text-faint); display:block; font-size: 9px; font-weight:700; text-transform:uppercase;">Base Price</span><b style="color:${p.isCaptain ? 'var(--accent-blue)' : 'var(--accent-gold)'};">${formatPrice(p.isCaptain ? 100 : (p.basePrice || state.settings?.basePrice), p.isCaptain)}</b></div>
         </div>
 
         ${isSold ? `
           <div style="background: ${p.isCaptain ? 'rgba(96,165,250,0.1)' : 'var(--accent-green-glow)'}; border: 1px solid ${p.isCaptain ? 'rgba(96,165,250,0.3)' : 'rgba(52,211,153,0.3)'}; border-radius: 12px; padding: 12px; text-align: center;">
             <p style="font-size: 10px; text-transform: uppercase; color: ${p.isCaptain ? 'var(--accent-blue)' : 'var(--accent-green)'}; font-weight: 700;">Sold To</p>
-            <h3 style="font-size: 16px; font-weight: 800; color: #fff;">${p.soldToTeamName}</h3>
+            <h3 style="font-size: 16px; font-weight: 800; color: #fff;">${escapeHtml(p.soldToTeamName)}</h3>
             <p style="font-size: 14px; font-weight: 800; color: ${p.isCaptain ? 'var(--accent-blue)' : 'var(--accent-gold)'}; margin-top: 4px;">${formatPrice(p.soldPrice, p.isCaptain)}</p>
           </div>
         ` : ''}
@@ -1238,15 +1258,21 @@
       });
 
       const rosterHtml = sortedBought.length
-        ? sortedBought.map(p => `
-            <div class="roster-item" data-player-id="${p.id}">
-              <div class="roster-player">
-                <img class="roster-avatar" src="${p.imageUrl || placeholder(p.name?.[0])}" alt="${escapeHtml(p.name)}">
-                <span class="roster-name">${p.isCaptain ? '👑 ' : ''}${p.isIconPlayer ? '⭐ ' : ''}${p.isChitPlayer ? '🎟️ ' : ''}${escapeHtml(p.name)}</span>
+        ? sortedBought.map(p => {
+            const cityStr = String(p.city || "").trim();
+            return `
+              <div class="roster-item" data-player-id="${p.id}">
+                <div class="roster-player">
+                  <img class="roster-avatar" src="${p.imageUrl || placeholder(p.name?.[0])}" alt="${escapeHtml(p.name)}">
+                  <div style="min-width: 0;">
+                    <span class="roster-name" style="display: block;">${p.isCaptain ? '👑 ' : ''}${p.isIconPlayer ? '⭐ ' : ''}${p.isChitPlayer ? '🎟️ ' : ''}${escapeHtml(p.name)}</span>
+                    ${cityStr ? `<span style="display: block; font-size: 10px; color: var(--text-faint); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">📍 ${escapeHtml(cityStr)}</span>` : ''}
+                  </div>
+                </div>
+                <b class="roster-price" style="${p.isCaptain ? 'color: var(--accent-blue);' : 'color: var(--accent-gold);'}">${formatPrice(p.soldPrice, p.isCaptain)}</b>
               </div>
-              <b class="roster-price" style="${p.isCaptain ? 'color: var(--accent-blue);' : 'color: var(--accent-gold);'}">${formatPrice(p.soldPrice, p.isCaptain)}</b>
-            </div>
-          `).join("")
+            `;
+          }).join("")
         : `<p class="roster-empty">No players acquired yet.</p>`;
 
       return `
@@ -1318,15 +1344,20 @@
     function buildPlayerCardHtml(p, rank) {
       const isSold = p.status === "Sold";
       const isBellActive = state.subscribedPlayerIds.has(p.id);
+      const cityStr = String(p.city || "").trim();
 
       return `
         <article class="player-card" data-player-id="${p.id}">
           <div class="player-card-left">
             <span class="player-rank">${rank}</span>
-            <img class="player-avatar" src="${p.imageUrl || placeholder(p.name?.[0])}">
+            <img class="player-avatar" src="${p.imageUrl || placeholder(p.name?.[0])}" alt="${escapeHtml(p.name)}">
             <div style="min-width: 0;">
               <h3 class="player-name-row">${p.isCaptain ? '👑 ' : ''}${p.isIconPlayer ? '⭐ ' : ''}${p.isChitPlayer ? '🎟️ ' : ''}${escapeHtml(p.name)}</h3>
-              <div class="player-skills"><span>🏏 ${escapeHtml(p.batting||"-")}</span><span>🥎 ${escapeHtml(p.bowling||"-")}</span></div>
+              <div class="player-skills">
+                ${cityStr ? `<span>📍 ${escapeHtml(cityStr)}</span>` : ''}
+                <span>🏏 ${escapeHtml(p.batting || "-")}</span>
+                <span>🥎 ${escapeHtml(p.bowling || "-")}</span>
+              </div>
             </div>
           </div>
 
@@ -1344,6 +1375,7 @@
 
     function renderPlayers() {
       const wrap = $("playersList");
+      const q = state.searchQuery.trim().toLowerCase();
       let filtered = state.players.filter(p => {
         let mStatus = false;
         if (state.activeFilter === "All") mStatus = true;
@@ -1352,7 +1384,9 @@
         else if (state.activeFilter === "Pending") mStatus = (!p.status || p.status === "Pending");
         else if (state.activeFilter === "Pinned") mStatus = state.subscribedPlayerIds.has(p.id);
 
-        const mSearch = !state.searchQuery || (p.name || "").toLowerCase().includes(state.searchQuery.toLowerCase());
+        const mSearch = !q
+          || (p.name || "").toLowerCase().includes(q)
+          || (p.city || "").toLowerCase().includes(q);
         return mStatus && mSearch;
       });
 
@@ -1389,13 +1423,18 @@
       }
       list.innerHTML = state.feed.map(item => `
         <li class="feed-item">
-          <span class="feed-item-text">${item.text}</span>
+          <span class="feed-item-text">${escapeHtml(item.text)}</span>
           <small class="feed-item-time">${item.time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</small>
         </li>
       `).join("");
     }
 
     function showSoldOverlay(player) {
+      if (soldHideTimer) clearTimeout(soldHideTimer);
+      if (soldConfettiTimer) clearTimeout(soldConfettiTimer);
+      if (unsoldHideTimer) clearTimeout(unsoldHideTimer);
+      $("unsoldOverlay").classList.remove("show");
+
       const overlay = $("resultOverlay");
       overlay.querySelector(".confetti-wrap")?.remove();
       
@@ -1415,26 +1454,61 @@
       $("soldBadge").className = `overlay-badge ${player.isCaptain ? 'text-[#60a5fa] bg-[#60a5fa]/20 border-[#60a5fa]/30' : ''}`;
       
       $("oName").textContent = (player.isCaptain ? '👑 ' : '') + (player.isIconPlayer ? '⭐ ' : '') + (player.isChitPlayer ? '🎟️ ' : '') + (player.name || "Player");
+
+      const soldCity = String(player.city || "").trim();
+      const oCityEl = $("oCity");
+      if (soldCity) {
+        oCityEl.textContent = `📍 ${soldCity}`;
+        oCityEl.style.display = "block";
+      } else {
+        oCityEl.textContent = "";
+        oCityEl.style.display = "none";
+      }
       
       $("soldDivider").className = `overlay-divider ${player.isCaptain ? 'bg-[#60a5fa]' : 'bg-[var(--accent-green)]'}`;
       
-      $("oMeta").innerHTML = `<span style="font-weight:700;color:var(--text-muted);">${player.soldToTeamName || "Team"}</span> <br> <b style="font-size:24px;margin-top:8px;display:inline-block;font-weight:800;color:${player.isCaptain ? 'var(--accent-blue)' : 'var(--accent-gold)'};">${formatPrice(player.soldPrice, player.isCaptain)}</b>`;
+      $("oMeta").innerHTML = `<span style="font-weight:700;color:var(--text-muted);">${escapeHtml(player.soldToTeamName || "Team")}</span> <br> <b style="font-size:24px;margin-top:8px;display:inline-block;font-weight:800;color:${player.isCaptain ? 'var(--accent-blue)' : 'var(--accent-gold)'};">${formatPrice(player.soldPrice, player.isCaptain)}</b>`;
 
       overlay.querySelector('.overlay-card').prepend(confetti);
       overlay.classList.add("show");
-      setTimeout(() => overlay.classList.remove("show"), 3200);
-      setTimeout(() => confetti.remove(), 3600);
+      soldHideTimer = setTimeout(() => { overlay.classList.remove("show"); soldHideTimer = null; }, 3200);
+      soldConfettiTimer = setTimeout(() => { confetti.remove(); soldConfettiTimer = null; }, 3600);
     }
 
     function showUnsoldOverlay(player) {
+      if (soldHideTimer) clearTimeout(soldHideTimer);
+      if (unsoldHideTimer) clearTimeout(unsoldHideTimer);
+      $("resultOverlay").classList.remove("show");
+
       const overlay = $("unsoldOverlay");
       $("uName").textContent = (player.isCaptain ? '👑 ' : '') + (player.name || "Player");
+
+      const unsoldCity = String(player.city || "").trim();
+      const uCityEl = $("uCity");
+      if (unsoldCity) {
+        uCityEl.textContent = `📍 ${unsoldCity}`;
+        uCityEl.style.display = "block";
+      } else {
+        uCityEl.textContent = "";
+        uCityEl.style.display = "none";
+      }
+
       overlay.classList.add("show");
-      setTimeout(() => overlay.classList.remove("show"), 3000);
+      unsoldHideTimer = setTimeout(() => { overlay.classList.remove("show"); unsoldHideTimer = null; }, 3000);
     }
 
     function triggerLiveAlert(p) {
       $("alertPlayerName").textContent = `${p.isCaptain ? '👑 ' : ''}${p.isIconPlayer ? '⭐ ' : ''}${p.name}`;
+      const cityStr = String(p.city || "").trim();
+      const alertCityEl = $("alertPlayerCity");
+      if (cityStr) {
+        alertCityEl.textContent = `📍 ${cityStr}`;
+        alertCityEl.style.display = "block";
+      } else {
+        alertCityEl.textContent = "";
+        alertCityEl.style.display = "none";
+      }
+
       $("liveAlertModal").classList.add("show");
       if (liveAlertTimeout) clearTimeout(liveAlertTimeout);
       liveAlertTimeout = setTimeout(() => {
@@ -1693,7 +1767,7 @@
             const newTopUp = Number(team.topUp) || 0;
             if (newTopUp > oldTopUp) {
               const diff = newTopUp - oldTopUp;
-              showToast(`💰 <b>${team.name}</b> received a top-up of <span style="color:var(--accent-gold)">${money(diff)}</span>!`);
+              showToast(`💰 <b>${escapeHtml(team.name)}</b> received a top-up of <span style="color:var(--accent-gold)">${money(diff)}</span>!`);
               pushFeed(`💰 ${team.name} purse topped up by ${money(diff)}`);
             }
           });
